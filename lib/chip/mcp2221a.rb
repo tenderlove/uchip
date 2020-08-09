@@ -305,17 +305,3 @@ module Chip
     attr_reader :handle
   end
 end
-
-chip = Chip::MCP2221A.first
-i2c  = chip.i2c_on 0x51
-i2c.cancel
-
-loop do
-  i2c.write 0x2.chr
-  p i2c.read 8
-  sleep 1
-rescue Chip::MCP2221A::EmptyResponse
-  puts "oh no"
-  i2c.cancel
-  retry
-end
