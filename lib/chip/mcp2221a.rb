@@ -6,6 +6,8 @@ module Chip
 
     class Error < StandardError; end
     class CommandNotSupported < Error; end
+    class Busy < Error; end
+    class EmptyResponse < Error; end
 
     def self.each
       MyHIDAPI.enumerate(0x04d8, 0x00dd).each { |dev| yield new dev }
@@ -25,36 +27,15 @@ module Chip
     end
 
     def read_flash section
-      retries = 0
-      buf = [0xB0, section].pack('C*')
-      buf << ("\x0".b * (64 - buf.bytesize))
-
-      loop do
-        break if handle.write buf
-        retries += 1
-        raise "Too many retries" if retries > 3
-      end
-
-      buf = @handle.read_timeout 64, 300 # 300 ms timeout
-      raise "Nothing read!" unless buf
-      raise CommandNotSupported, buf unless buf.start_with?("\xB0\x0".b)
-      buf
+      buf = pad [0xB0, section].pack('C*')
+      write_request buf
+      check_response read_response, 0xB0
     end
 
     def write_flash section, bytes
-      retries = 0
-      buf = ([0xB1, section] + bytes).pack('C*')
-      buf << ("\x0".b * (64 - buf.bytesize))
-
-      loop do
-        break if handle.write buf
-        retries += 1
-        raise "Too many retries" if retries > 3
-      end
-
-      buf = @handle.read_timeout 64, 300 # 300 ms timeout
-      raise CommandNotSupported, buf unless buf.start_with?("\xB1\x0".b)
-      true
+      buf = pad ([0xB1, section] + bytes).pack('C*')
+      write_request buf
+      check_response read_response, 0xB1
     end
 
     class ChipSettings
@@ -230,15 +211,111 @@ module Chip
       rest[0, byte_count - 2].pack('U*')
     end
 
+    def reset
+      buf = pad ([0x70, 0xAB, 0xCD, 0xEF]).pack('C*')
+      write_request buf
+    end
+
+    def i2c_write address, bytes
+      send_i2c_command 0x90, address, bytes.bytesize, bytes
+    end
+
+    def i2c_write_no_stop address, bytes
+      send_i2c_command 0x94, address, bytes.bytesize, bytes
+    end
+
+    def i2c_read_start address, length
+      send_i2c_command 0x91, address, length, "".b
+    end
+
+    def i2c_read_repeated_start address, length
+      send_i2c_command 0x93, address, length, "".b
+    end
+
+    def i2c_read
+      buf = pad 0x40.chr
+      write_request buf
+      buf = check_response read_response, 0x40
+      len = buf[3].ord
+      buf[4, len]
+    end
+
+    def i2c_cancel
+      buf = pad [0x10, 0x0, 0x10].pack('C*')
+      write_request buf
+      check_response read_response, 0x10
+    end
+
+    class I2CProxy
+      def initialize address, handler
+        @read_address  = (address << 1) | 1
+        @write_address = address << 1
+        @handler       = handler
+      end
+
+      def cancel; @handler.i2c_cancel; end
+
+      def write buf
+        @handler.i2c_write @write_address, buf
+      end
+
+      def read size
+        @handler.i2c_read_start @read_address, 8
+        @handler.i2c_read
+      end
+    end
+
+    def i2c_on address
+      I2CProxy.new address, self
+    end
+
     private
+
+    def send_i2c_command cmd, address, length, bytes
+      buf = pad [cmd, length & 0xFF, (length >> 16) & 0xFF, address].pack('C*') + bytes
+      write_request buf
+      check_response read_response, cmd
+    end
+
+    def pad buf
+      buf << ("\x0".b * (64 - buf.bytesize))
+    end
+
+    def check_response buf, type
+      raise Error, buf unless buf[0].ord == type
+      raise Busy, buf unless buf[1].ord == 0
+      buf
+    end
+
+    def read_response
+      # 300 ms timeout
+      #return @handle.read 64
+      @handle.read_timeout(64, 30) || raise(EmptyResponse)
+    end
+
+    def write_request buf
+      retries = 0
+      loop do
+        break if handle.write buf
+        retries += 1
+        raise "Too many retries" if retries > 3
+      end
+    end
 
     attr_reader :handle
   end
 end
 
 chip = Chip::MCP2221A.first
-settings = chip.gp_settings
-p settings.gp0_output_value
-settings.gp0_output_value = 1
-p settings.gp0_output_value
-chip.gp_settings = settings
+i2c  = chip.i2c_on 0x51
+i2c.cancel
+
+loop do
+  i2c.write 0x2.chr
+  p i2c.read 8
+  sleep 1
+rescue Chip::MCP2221A::EmptyResponse
+  puts "oh no"
+  i2c.cancel
+  retry
+end
