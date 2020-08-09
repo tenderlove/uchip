@@ -140,7 +140,13 @@ module Chip
       write_flash FlashData::CHIP_SETTINGS, settings.bytes
     end
 
+    def gp_settings= settings
+      write_flash FlashData::GP_SETTINGS, settings.bytes
+    end
+
     class GPSettings
+      attr_reader :bytes
+
       def initialize bytes
         @bytes = bytes
       end
@@ -149,11 +155,45 @@ module Chip
         to_s.sub(/>$/, " #{decode(@bytes).inspect}>")
       end
 
+      def output_value_at i
+        (bytes[i] >> 4) & 0x1
+      end
+
+      def set_output_value_at i, v
+        bytes[i] &= ~(1 << 4)
+        bytes[i] |= (1 & v) << 4
+      end
+
+      def direction_at i
+        (bytes[i] >> 3) & 0x1
+      end
+
+      def set_direction_at v
+        bytes[i] &= ~(1 << 3)
+        bytes[i] |= (1 & v) << 3
+      end
+
+      def designation_at i
+        (bytes[i] >> 0) & 0x3
+      end
+
+      def set_designation_at i
+        bytes[i] &= ~(0x3 << 0)
+        bytes[i] |= (0x3 & v) << 0
+      end
+
+      4.times { |i|
+        [:output_value, :direction, :designation].each { |n|
+          define_method("gp#{i}_#{n}") { send("#{n}_at", i) }
+          define_method("gp#{i}_#{n}=") { |v| send("set_#{n}_at", i, v) }
+        }
+      }
+
       def decode bytes
         4.times.each_with_object({}) { |i, o|
-          o[:"gp#{i}_output_value"] = (bytes[i] >> 4) & 0x1
-          o[:"gp#{i}_direction"]    = (bytes[i] >> 3) & 0x1
-          o[:"gp#{i}_designation"]  = (bytes[i] >> 0) & 0x3
+          o[:"gp#{i}_output_value"] = output_value_at(i)
+          o[:"gp#{i}_direction"]    = direction_at(i)
+          o[:"gp#{i}_designation"]  = designation_at(i)
         }
       end
     end
@@ -197,9 +237,8 @@ module Chip
 end
 
 chip = Chip::MCP2221A.first
-settings = chip.chip_settings
-p settings
-p settings.cdc
-settings.cdc = false
-chip.chip_settings = settings
-p chip.chip_settings.cdc
+settings = chip.gp_settings
+p settings.gp0_output_value
+settings.gp0_output_value = 1
+p settings.gp0_output_value
+chip.gp_settings = settings
