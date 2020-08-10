@@ -14,8 +14,7 @@ def dec2bcd val
 end
 
 def time2bcd time
-  [
-    time.sec,
+  [ time.sec,
     time.min,
     time.hour,
     time.day,
@@ -47,7 +46,7 @@ i2c  = chip.i2c_on 0x51
 i2c.cancel
 
 # Write the current time to the RTC, starting at address 0x2
-i2c.write(0x2.chr + time2bcd(Time.now).pack("C7"))
+i2c.write 0x2.chr + time2bcd(Time.now).pack("C7")
 
 loop do
   # Write 0 bytes at address 0x2. This moves the pointer to the seconds location

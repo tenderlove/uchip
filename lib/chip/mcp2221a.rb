@@ -49,14 +49,7 @@ module Chip
 
       BIT_FIELDS = []
       def self.bool_attr_accessor name, index, offset
-        BIT_FIELDS << name
-        define_method(name) do
-          !((bytes[index] >> offset) & 0x1).zero?
-        end
-
-        define_method(:"#{name}=") do |v|
-          v ?  bytes[index] |= (1 << offset) : bytes[index] &= ~(1 << offset)
-        end
+        bit_attr_accesor name, index, offset, 0x1
       end
 
       def self.bit_attr_accesor name, index, offset, mask
