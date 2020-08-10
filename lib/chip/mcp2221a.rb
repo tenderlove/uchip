@@ -151,7 +151,7 @@ module Chip
         (bytes[i] >> 0) & 0x3
       end
 
-      def set_designation_at i
+      def set_designation_at i, v
         bytes[i] &= ~(0x3 << 0)
         bytes[i] |= (0x3 & v) << 0
       end
