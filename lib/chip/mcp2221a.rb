@@ -8,6 +8,7 @@ module Chip
     class CommandNotSupported < Error; end
     class Busy < Error; end
     class EmptyResponse < Error; end
+    class GPIOConfigurationError < Error; end
 
     def self.each
       MyHIDAPI.enumerate(0x04d8, 0x00dd).each { |dev| yield new dev }
@@ -260,6 +261,97 @@ module Chip
 
     def i2c_on address
       I2CProxy.new address, self
+    end
+
+    class Pin < Struct.new :chip, :number
+      def output!
+        chip.configure_gpio number, :output
+      end
+
+      def value
+        chip.gpio_value number
+      end
+
+      def value= v
+        chip.set_gpio_value number, v
+      end
+    end
+
+    def pin number
+      Pin.new self, number
+    end
+
+    def gpio_value pin
+      cmd = 0x51
+      write_request pad cmd.chr
+      buf = check_response read_response, cmd
+      buf[2 + (pin * 2), 1].ord
+    end
+
+    def configure_gpio pin, mode, default = 0
+      settings = default << 4
+      case mode
+      when :input then mode = (1 << 3)
+      when :output then mode = 0
+      end
+      settings |= mode
+
+      # Read the current pin settings
+      bytes = sram.gp_settings.bytes
+      bytes[pin] = settings
+
+      cmd = 0x60
+      buf = pad ([cmd, 0x0,
+                 0x0, # clock output divider
+                 0x0, # DAC voltage reference
+                 0x0, # DAC output value
+                 0x0, # ADC voltage reference
+                 0x0, # interrupt detection
+                 (1 << 7), # Alter GPIO config
+      ] + bytes).pack('C*')
+      write_request buf
+      check_response read_response, cmd
+    end
+
+    def set_gpio_value pin, value
+      cmd = 0x50
+      pin_values = [
+        0x0, # Alter output
+        0x0, # Output Value
+        0x0, # Alter direction
+        0x0  # Direction value
+      ] * 4
+      pin_values[(pin * 4)]     = 0x1
+      pin_values[(pin * 4) + 1] = (value & 0x1)
+      buf = pad ([cmd, 0x0] + pin_values).pack('C*')
+      write_request buf
+      val = check_response(read_response, cmd)[3 + (pin * 2)].ord
+      if val == 0xEE
+        raise GPIOConfigurationError, "Pin #{pin} not configured as GPIO"
+      else
+        val
+      end
+    end
+
+    class SRAM
+      attr_reader :chip_settings, :gp_settings, :password
+
+      def initialize chip_settings, password, gp_settings
+        @chip_settings = chip_settings
+        @password      = password
+        @gp_settings   = gp_settings
+      end
+    end
+
+    def sram
+      cmd = 0x61
+      buf = pad cmd.chr
+      write_request buf
+      buf = check_response read_response, cmd
+      cs = ChipSettings.new buf[4, 10].bytes
+      pw = buf[14, 8]
+      gp = GPSettings.new buf[22, 4].bytes
+      SRAM.new cs, pw, gp
     end
 
     private
