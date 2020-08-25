@@ -1,7 +1,7 @@
 require 'myhidapi'
 
 module UChip
-  class MCP2221A
+  class MCP2221
     extend Enumerable
 
     class Error < StandardError; end
