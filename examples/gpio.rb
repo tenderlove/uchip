@@ -1,7 +1,7 @@
-require "chip/mcp2221a"
+require "uchip/mcp2221a"
 
 # Find the first connected chip
-chip = Chip::MCP2221A.first || raise("Couldn't find the chip!")
+chip = UChip::MCP2221A.first || raise("Couldn't find the chip!")
 
 pin = chip.pin 0
 pin.output!

@@ -1,6 +1,6 @@
 require 'myhidapi'
 
-module Chip
+module UChip
   class MCP2221A
     extend Enumerable
 

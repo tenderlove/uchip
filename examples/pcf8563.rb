@@ -1,4 +1,4 @@
-require "chip/mcp2221a"
+require "uchip/mcp2221a"
 
 # Example to read from a PCF8563 real time clock
 # https://www.nxp.com/docs/en/data-sheet/PCF8563.pdf
@@ -35,7 +35,7 @@ def bcd2time bytes
 end
 
 # Find the first connected chip
-chip = Chip::MCP2221A.first || raise("Couldn't find the chip!")
+chip = UChip::MCP2221A.first || raise("Couldn't find the chip!")
 
 # The write address is 0xA2, read address is 0xA3, so 0x51 (0xA3 >> 1) is
 # where we'll request a proxy
@@ -57,7 +57,7 @@ loop do
   buf = i2c.read 7
   p bcd2time(buf.bytes)
   sleep 1
-rescue Chip::MCP2221A::EmptyResponse
+rescue UChip::MCP2221A::EmptyResponse
   # if the chip gets messed up, reset the i2c engine and retry
   puts "oh no"
   i2c.cancel
