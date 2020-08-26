@@ -143,7 +143,7 @@ module UChip
         (bytes[i] >> 3) & 0x1
       end
 
-      def set_direction_at v
+      def set_direction_at i, v
         bytes[i] &= ~(1 << 3)
         bytes[i] |= (1 & v) << 3
       end
