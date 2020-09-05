@@ -16,7 +16,5 @@ Gem::Specification.new do |s|
   s.email    = "tenderlove@ruby-lang.org"
   s.homepage = "https://github.com/tenderlove/uchip"
 
-  s.files = ["README.md"]
-
   s.add_dependency "myhidapi", "~> 1.0"
 end
