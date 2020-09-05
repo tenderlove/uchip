@@ -9,6 +9,9 @@ Gem::Specification.new do |s|
 
   s.license = "MIT"
 
+  s.files = `git ls-files`.split("\n")
+  s.require_path = 'lib'
+
   s.author   = "Aaron Patterson"
   s.email    = "tenderlove@ruby-lang.org"
   s.homepage = "https://github.com/tenderlove/uchip"
