@@ -80,7 +80,7 @@ module UChip
       bool_attr_accessor :interrupt_detection_negative,    3,     6
       bool_attr_accessor :interrupt_detection_positive,    3,     5
       bit_attr_accesor   :adc_reference_voltage,           3,     3, 0x3
-      bool_attr_accessor :dac_voltage,                     3,     2
+      bool_attr_accessor :adc_reference_option,            3,     2
 
       def decode bytes
         BIT_FIELDS.each_with_object({}) { |n, o| o[n] = send n }.merge({
@@ -286,6 +286,22 @@ module UChip
       write_request pad cmd.chr
       buf = check_response read_response, cmd
       buf[2 + (pin * 2), 1].ord
+    end
+
+    def write_sram srm
+      cmd = 0x60
+
+      cs = srm.chip_settings
+      buf = pad ([cmd, 0x0,
+       cs.bytes[1], # clock output divider (maybe need to set top bit)
+       (cs.bytes[2] >> 5)         | (1 << 7), # DAC voltage reference
+       (cs.bytes[2] & 0x1F)       | (1 << 7), # DAC value
+       ((cs.bytes[3] >> 2) & 0x7) | (1 << 7), # ADC reference voltage
+       0,                                     # Don't modify interrupts
+       0,                                     # Don't modify GPIO
+      ]).pack('C*')
+      write_request buf
+      check_response read_response, cmd
     end
 
     def configure_gpio pin, mode, default = 0
