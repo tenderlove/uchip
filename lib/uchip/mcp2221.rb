@@ -5,6 +5,7 @@ module UChip
     extend Enumerable
 
     class Error < StandardError; end
+    class ReadError < Error; end
     class CommandNotSupported < Error; end
     class Busy < Error; end
     class EmptyResponse < Error; end
@@ -226,12 +227,16 @@ module UChip
       send_i2c_command 0x93, address, length, "".b
     end
 
-    def i2c_read
+    def i2c_read retries: 5
       buf = pad 0x40.chr
       write_request buf
       buf = check_response read_response, 0x40
       len = buf[3].ord
       buf[4, len]
+    rescue UChip::MCP2221::ReadError
+      raise if retries == 0
+      retries -= 1
+      retry
     end
 
     def i2c_cancel
@@ -254,7 +259,7 @@ module UChip
       end
 
       def read size
-        @handler.i2c_read_start @read_address, 8
+        @handler.i2c_read_start @read_address, size
         @handler.i2c_read
       end
     end
@@ -373,7 +378,7 @@ module UChip
     private
 
     def send_i2c_command cmd, address, length, bytes
-      buf = pad [cmd, length & 0xFF, (length >> 16) & 0xFF, address].pack('C*') + bytes
+      buf = pad [cmd, length & 0xFF, (length >> 8) & 0xFF, address].pack('C*') + bytes
       write_request buf
       check_response read_response, cmd
     end
@@ -384,7 +389,10 @@ module UChip
 
     def check_response buf, type
       raise Error, buf unless buf[0].ord == type
-      raise Busy, buf unless buf[1].ord == 0
+      raise ReadError, buf if buf[1].ord == 0x41
+      unless buf[1].ord == 0
+        raise Busy, buf
+      end
       buf
     end
 
