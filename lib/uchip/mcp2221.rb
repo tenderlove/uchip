@@ -10,6 +10,7 @@ module UChip
     class Busy < Error; end
     class EmptyResponse < Error; end
     class GPIOConfigurationError < Error; end
+    class NoOpenDevice < Error; end
 
     def self.each
       MyHIDAPI.enumerate(0x04d8, 0x00dd).each { |dev| yield new dev }
@@ -18,6 +19,7 @@ module UChip
     def initialize dev
       @dev = dev
       @handle = dev.open
+      raise NoOpenDevice, "Couldn't open device" unless @handle
     end
 
     def usb_manufacturer
@@ -258,6 +260,10 @@ module UChip
         @handler.i2c_write @write_address, buf
       end
 
+      def write_no_stop buf
+        @handler.i2c_write_no_stop @write_address, buf
+      end
+
       def read size
         @handler.i2c_read_start @read_address, size
         @handler.i2c_read
@@ -378,9 +384,16 @@ module UChip
     private
 
     def send_i2c_command cmd, address, length, bytes
-      buf = pad [cmd, length & 0xFF, (length >> 8) & 0xFF, address].pack('C*') + bytes
-      write_request buf
-      check_response read_response, cmd
+      idx = 0
+      while length > 0
+        bytes_to_write = bytes[idx, 60]
+        buf = pad [cmd, length & 0xFF, (length >> 8) & 0xFF, address].pack('C*') + bytes_to_write
+        write_request buf
+        check_response read_response, cmd
+        length -= bytes_to_write.bytesize
+        idx += bytes_to_write.bytesize
+        sleep 0.002
+      end
     end
 
     def pad buf
