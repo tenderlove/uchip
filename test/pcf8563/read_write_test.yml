@@ -1,0 +1,48 @@
+---
+- - :write
+  - :in: "\x10\0\x10\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+    :out: 64
+- - :read_timeout
+  - :in:
+    - 64
+    - 30
+    :out: !binary |-
+      EAAQAAAAAABgBwAHAAAUAKMAECggYAEBAADhdfAAAAAwMAswBCMXdgYAACaUHEE2MTL/AwAA/wN7A4ACAAAAAA==
+- - :write
+  - :in: !binary |-
+      kAgAogIAAAAGBgIhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+    :out: 64
+- - :read_timeout
+  - :in:
+    - 64
+    - 30
+    :out: !binary |-
+      kAAQAAAAAABgBwAHAAAUAKMAECggYAEBAADhdfAAAAAwMAswBCMXdgYAACaUHEE2MTL/AwAA/wN7A4ACAAAAAA==
+- - :write
+  - :in: !binary |-
+      kAEAogIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+    :out: 64
+- - :read_timeout
+  - :in:
+    - 64
+    - 30
+    :out: !binary |-
+      kAAQAAAAAABgBwAHAAAUAKMAECggYAEBAADhdfAAAAAwMAswBCMXdgYAACaUHEE2MTL/AwAA/wN7A4ACAAAAAA==
+- - :write
+  - :in: !binary |-
+      kQcAowAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+    :out: 64
+- - :read_timeout
+  - :in:
+    - 64
+    - 30
+    :out: !binary |-
+      kQAQAAAAAABgBwAHAAAUAKMAECggYAEBAADhdfAAAAAwMAswBCMXdgYAACaUHEE2MTL/AwAA/wN7A4ACAAAAAA==
+- - :write
+  - :in: "@\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+    :out: 64
+- - :read_timeout
+  - :in:
+    - 64
+    - 30
+    :out: "@\0U\a\0\0\0\x06\x06\x02!\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
