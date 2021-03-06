@@ -6,6 +6,27 @@ require "uchip/mcp2221"
 require "forwardable"
 
 class UChip::TestCase < Minitest::Test
+  class Recorder
+    attr_reader :ops
+
+    def initialize dev
+      @dev = dev
+      @ops = []
+    end
+
+    def write bytes
+      x = @dev.write bytes
+      @ops << [__method__, { in: bytes, out: x }]
+      x
+    end
+
+    def read_timeout size, timeout
+      x = @dev.read_timeout size, timeout
+      @ops << [__method__, { in: [size, timeout], out: x }]
+      x
+    end
+  end
+
   class ReplayTest
     extend Forwardable
 
@@ -42,5 +63,11 @@ class UChip::TestCase < Minitest::Test
   def make_replay recording
     dev = ReplayTest.new self, recording
     UChip::MCP2221.new Object.new, dev
+  end
+
+  def make_recording
+    dev = MyHIDAPI.enumerate(0x04d8, 0x00dd).first
+    @wrapper = Recorder.new dev.open
+    UChip::MCP2221.new Object.new, @wrapper
   end
 end
