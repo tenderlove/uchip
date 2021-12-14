@@ -238,6 +238,7 @@ module UChip
     rescue UChip::MCP2221::ReadError
       raise if retries == 0
       retries -= 1
+      sleep 0.01
       retry
     end
 
@@ -266,6 +267,7 @@ module UChip
 
       def read size
         @handler.i2c_read_start @read_address, size
+        sleep 0.1
         @handler.i2c_read
       end
     end
