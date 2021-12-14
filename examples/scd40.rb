@@ -98,10 +98,7 @@ begin
   loop do
     if scd40.ready?
       p scd40.read_measurement => Time.now
-    else
-      p :not_ready => Time.now
     end
-    sleep 0.1
   end
 ensure
   p :stopping
