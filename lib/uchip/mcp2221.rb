@@ -16,6 +16,8 @@ module UChip
       MyHIDAPI.enumerate(0x04d8, 0x00dd).each { |dev| yield new dev, dev.open }
     end
 
+    attr_reader :handle, :dev
+
     def initialize dev, handle
       @dev = dev
       @handle = handle
@@ -248,6 +250,22 @@ module UChip
       check_response read_response, 0x10
     end
 
+    def status
+      buf = pad 0x10.chr
+      write_request buf
+      read_response
+    end
+
+    def print_status
+      s = status
+      bytes = s.bytes
+      puts "Index | Hex  | Dec"
+      puts "------|------|----"
+      bytes.each_with_index do |byte, index|
+        printf "%4d  | %02X   | %3d\n", index, byte, byte
+      end
+    end
+
     class I2CProxy
       def initialize address, handler
         @read_address  = (address << 1) | 1
@@ -431,7 +449,5 @@ module UChip
         raise "Too many retries" if retries > 3
       end
     end
-
-    attr_reader :handle
   end
 end
