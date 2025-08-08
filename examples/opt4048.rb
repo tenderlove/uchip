@@ -1,9 +1,7 @@
 require "uchip/mcp2221"
 
 class OPT4048
-  def self.find
-    chip = UChip::MCP2221.first || raise("Couldn't find mcp2221")
-
+  def self.find chip
     new chip.i2c_on(0x44)
   end
 
@@ -81,7 +79,6 @@ class OPT4048
   end
 
   def initialize i2c
-    i2c.cancel
     @i2c = i2c
   end
 
@@ -116,9 +113,13 @@ class OPT4048
   def ch3; read_ch 0x6; end
 
   class AllValues
+    include Enumerable
+
     def initialize vals
       @vals = vals
     end
+
+    def each(&blk); @vals.each(&blk); end
 
     def red; @vals[0]; end
     def green; @vals[1]; end
@@ -214,7 +215,14 @@ class OPT4048
   end
 end
 
-dev = OPT4048.find
+chip = UChip::MCP2221.first || raise("Couldn't find mcp2221")
+if chip.status.getbyte(8) != 0
+  puts "reset chip, try again"
+  chip.reset
+  exit!
+end
+
+dev = OPT4048.find chip
 raise("wrong device") unless dev.device_id == 0x2084
 
 s = dev.settings
@@ -226,7 +234,7 @@ dev.settings = s
 p dev.settings
 
 loop do
+  sleep 1
   all = dev.read_all
   p [all.CCT, all.lux]
-  sleep 1
 end
